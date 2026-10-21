@@ -96,6 +96,25 @@ All hint wording is in the `HINTS` list at the bottom of `data.js`. Level 1 clue
 - Two clean runs open the next level. They don't have to be in a row. Change `CLEAN_RUNS_TO_UNLOCK` in `app.js` to adjust.
 - Progress is saved in each computer's browser. If students share computers or clear their browser data, progress resets. The `#teacher` page can open every level or reset progress on one computer.
 
+## Opening the next level
+
+`OPEN_UP_TO` in `app.js` sets the highest level students can reach. Levels above it show "Coming soon" on the ladder, even for students who have earned them. Raise the number when you're ready to start the next level. Check links work for every built level regardless.
+
+## Warm-ups
+
+From Level 2 on, each practice session starts with a warm-up on three random eras. Each era is a short chain built from the earlier levels:
+
+| Before | Each era |
+|---|---|
+| Level 2 | Given a description, pick the era's name |
+| Level 3 | Given the era's number and years, pick its name, then its description |
+| Level 4 and up | Given the era's number, pick its start year, then its name, then its description |
+
+- Only a warm-up with no misses opens the level.
+- A missed warm-up means another warm-up right away, with three different eras.
+- Two missed warm-ups in a row close the level until the student does one clean run of the earlier level the misses came from. The ladder shows which level, with a button to practice it.
+- "Play again" inside a level doesn't repeat the warm-up. Coming back to the level after reloading the page does.
+
 ## Things to know about check mode
 
 - Students can reload the page and take a check again. Every attempt lands in the sheet with a timestamp, so you can decide which attempt counts (for example, the first one).
