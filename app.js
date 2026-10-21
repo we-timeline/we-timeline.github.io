@@ -2,7 +2,7 @@
 const CONFIG = {
   // Paste your Google Apps Script web app URL between the quotes to collect check results in a sheet.
   // Leave it empty and students will see their result on screen instead.
-  SHEET_URL: "",
+  SHEET_URL: "https://script.google.com/macros/s/AKfycbyTZ-egJnzXmiSJ_GyI5M0NvbeUK8S8fRj0LdV8au4HEcC4ocph4v41P88RRKlR8kBUBQ/exec",
   // How many clean runs (all right on the first check) open the next level.
   CLEAN_RUNS_TO_UNLOCK: 2,
   // Teachers and their hours. Students pick a teacher first, then one of that teacher's hours.
