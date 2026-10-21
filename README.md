@@ -23,18 +23,16 @@ All 69 anchor events are already in `data.js`, so levels 4–6 can be built on t
 - `app.js`: how the levels work. The `CONFIG` block at the top holds the settings you'll change.
 - `apps-script/Code.gs`: collects check results in a Google Sheet
 
-## Put it on GitHub Pages
+## Where it lives
 
-1. Create a new repository and upload these files, keeping `apps-script/` as a folder.
-2. In the repository, go to **Settings → Pages**. Under "Build and deployment," choose **Deploy from a branch**, pick `main` and `/ (root)`, then **Save**.
-3. After a minute the site is live at `https://YOUR-USERNAME.github.io/REPO-NAME/`.
+The site is published by GitHub Pages from the `main` branch of this repository. Changes go live a minute or two after they're committed.
 
 ## Links you'll give students
 
-- Practice (the ladder): `https://YOUR-USERNAME.github.io/REPO-NAME/`
-- Level 1 check: the same address ending in `#check-1`
-- Level 2 check: the same address ending in `#check-2`
-- Teacher tools: the same address ending in `#teacher`
+- Practice (the ladder): `https://we-timeline.github.io/`
+- Level 1 check: `https://we-timeline.github.io/#check-1`
+- Level 2 check: `https://we-timeline.github.io/#check-2`
+- Teacher tools: `https://we-timeline.github.io/#teacher`
 
 A check link opens the check directly, even if a student hasn't unlocked that level. You can post check links in Schoology as an assignment link.
 
@@ -54,7 +52,7 @@ One script sends each check to the sheet for the teacher the student picked. The
    - Execute as: **Me**
    - Who has access: **Anyone**
 8. Click **Deploy** and copy the **Web app URL**.
-9. Paste the URL into `SHEET_URL: ""` at the top of `app.js` and commit the change.
+9. Paste the URL into `SHEET_URL` at the top of `app.js` and commit the change. (This is already done for the current deployment.)
 
 Each submitted check adds a row to that teacher's sheet: name, hour, level, score, time, and which eras were missed. If a result ever arrives without a known teacher, it goes to a sheet named "WE Timeline: Unsorted."
 
