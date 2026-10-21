@@ -5,8 +5,13 @@ const CONFIG = {
   SHEET_URL: "",
   // How many clean runs (all right on the first check) open the next level.
   CLEAN_RUNS_TO_UNLOCK: 2,
-  // Choices for the "Hour" menu on check screens.
-  HOURS: ["1st Hour", "2nd Hour", "3rd Hour", "4th Hour", "5th Hour", "6th Hour", "7th Hour"]
+  // Teachers and their hours. Students pick a teacher first, then one of that teacher's hours.
+  // Each code must match a code in TEACHERS in apps-script/Code.gs. Update this list each school year.
+  TEACHERS: [
+    { code: "STR", hours: ["1st Hour"] },
+    { code: "LAF", hours: ["1st Hour", "7th Hour"] },
+    { code: "LYS", hours: ["1st Hour", "2nd Hour", "3rd Hour"] }
+  ]
 };
 
 // ===== THE LADDER =====
@@ -211,7 +216,7 @@ function renderGame() {
   app.innerHTML = `
     <nav class="topbar">
       <div class="where"><h2>Level ${L.n} · ${L.title}</h2><span class="mode ${isCheck ? "check" : ""}">${isCheck ? "Check" : "Practice"}</span></div>
-      ${isCheck && !G.done ? `<span class="small">${esc(G.who.name)} · ${esc(G.who.hour)}</span>` : `<a class="back" href="#">← All levels</a>`}
+      ${isCheck && !G.done ? `<span class="small">${esc(G.who.name)} · ${esc(G.who.teacher)} · ${esc(G.who.hour)}</span>` : `<a class="back" href="#">← All levels</a>`}
     </nav>
     ${G.done && isCheck ? resultPanel() : `<p class="howto">${howto}</p>`}
     ${!isCheck && !G.done ? tipsHTML() : ""}
@@ -281,17 +286,26 @@ function checkIntro(level) {
       <h2>Before you start</h2>
       <p>${esc(L.task)} This is the same task you practiced, with two differences: you get <b>one try</b>, and you won't see which answers are right until you submit.</p>
       <form class="form" id="who-form" novalidate>
+        <label for="student-teacher">Teacher<select id="student-teacher" required><option value="">Choose your teacher</option>${CONFIG.TEACHERS.map(t => `<option>${esc(t.code)}</option>`).join("")}</select></label>
+        <label for="student-hour">Hour<select id="student-hour" required disabled><option value="">Choose your teacher first</option></select></label>
         <label for="student-name">Your first and last name<input id="student-name" autocomplete="name" required></label>
-        <label for="student-hour">Hour<select id="student-hour" required><option value="">Choose your hour</option>${CONFIG.HOURS.map(h => `<option>${esc(h)}</option>`).join("")}</select></label>
         <p class="err" id="who-err" aria-live="polite"></p>
         <div><button class="btn" type="submit">Start the check</button></div>
       </form>
     </section>`;
+  const tSel = document.getElementById("student-teacher"), hSel = document.getElementById("student-hour");
+  tSel.addEventListener("change", () => {
+    const t = CONFIG.TEACHERS.find(x => x.code === tSel.value);
+    if (!t) { hSel.innerHTML = `<option value="">Choose your teacher first</option>`; hSel.disabled = true; return; }
+    hSel.innerHTML = (t.hours.length > 1 ? `<option value="">Choose your hour</option>` : "") + t.hours.map(h => `<option>${esc(h)}</option>`).join("");
+    hSel.disabled = false;
+  });
   document.getElementById("who-form").addEventListener("submit", ev => {
     ev.preventDefault();
-    const name = document.getElementById("student-name").value.trim(), hour = document.getElementById("student-hour").value;
-    if (!name || !hour) { document.getElementById("who-err").textContent = !name ? "Type your name to start." : "Choose your hour to start."; return; }
-    startGame(level, "check", { name, hour });
+    const teacher = tSel.value, hour = hSel.value, name = document.getElementById("student-name").value.trim();
+    const err = !teacher ? "Choose your teacher to start." : !hour ? "Choose your hour to start." : !name ? "Type your first and last name to start." : "";
+    if (err) { document.getElementById("who-err").textContent = err; return; }
+    startGame(level, "check", { teacher, hour, name });
   });
 }
 function submitCheck() {
@@ -308,7 +322,7 @@ function submitCheck() {
   renderGame(); window.scrollTo(0, 0);
   const detail = G.zones.slice().sort().map(z => `Era ${z.slice(1)}: ${byZone[z].ok ? "right" : "placed Era " + byZone[z].got}`).join("; ");
   sendResult({
-    student: G.who.name, hour: G.who.hour, level: G.level, levelName: LEVELS[G.level - 1].title,
+    teacher: G.who.teacher, student: G.who.name, hour: G.who.hour, level: G.level, levelName: LEVELS[G.level - 1].title,
     score, total: G.zones.length, percent: Math.round((score / G.zones.length) * 100), seconds, detail,
     submittedAt: new Date().toISOString()
   }).then(s => { if (G && G.result) { G.result.send = s; renderGame(); } });
@@ -330,7 +344,7 @@ function resultPanel() {
   }[r.send];
   return `<section class="panel">
     <div class="result-grid"><div class="score">${r.score} / ${r.total}</div>
-      <dl><dt>Name</dt><dd>${esc(G.who.name)}</dd><dt>Hour</dt><dd>${esc(G.who.hour)}</dd><dt>Level</dt><dd>${G.level} · ${LEVELS[G.level - 1].title}</dd><dt>Time</dt><dd>${m}:${String(s).padStart(2, "0")}</dd></dl></div>
+      <dl><dt>Name</dt><dd>${esc(G.who.name)}</dd><dt>Teacher</dt><dd>${esc(G.who.teacher)}</dd><dt>Hour</dt><dd>${esc(G.who.hour)}</dd><dt>Level</dt><dd>${G.level} · ${LEVELS[G.level - 1].title}</dd><dt>Time</dt><dd>${m}:${String(s).padStart(2, "0")}</dd></dl></div>
     ${note}
     <p class="small" style="margin-top:12px">Each row below is marked. The ones you missed show the right answer.</p>
   </section>`;
@@ -350,7 +364,7 @@ function renderTeacher() {
       <div class="teacher-list">${links}</div>
       <p class="small" style="margin-top:10px">On your GitHub site, a check link is your site's address with #check-1 or #check-2 on the end.</p></section>
     <section class="panel"><h2>Results sheet</h2>
-      <p>${CONFIG.SHEET_URL ? "Connected. Every submitted check adds a row to your Google Sheet." : "Not connected yet. Students will see their score on screen. The README explains how to connect a Google Sheet in about five minutes."}</p></section>
+      <p>${CONFIG.SHEET_URL ? `Connected. Each submitted check goes to its teacher's sheet (${CONFIG.TEACHERS.map(t => esc(t.code)).join(", ")}).` : "Not connected yet. Students will see their score on screen. The README explains how to connect a Google Sheet in about five minutes."}</p></section>
     <section class="panel"><h2>This computer</h2>
       <p>Progress lives in each computer's browser. These buttons only change this one.</p>
       <div class="btn-row" style="margin-top:12px"><button class="btn ghost" id="unlock-btn">${progress.unlockAll ? "Re-lock levels" : "Open every level"}</button><button class="btn ghost" id="reset-btn">Reset progress</button></div>

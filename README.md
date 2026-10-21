@@ -38,21 +38,47 @@ All 69 anchor events are already in `data.js`, so levels 4–6 can be built on t
 
 A check link opens the check directly, even if a student hasn't unlocked that level. You can post check links in Schoology as an assignment link.
 
-## Collect check results in a Google Sheet
+## Collect check results in Google Sheets (one sheet per teacher)
 
-1. Make a new Google Sheet (for example, "WE Timeline Results").
-2. In the sheet: **Extensions → Apps Script**. Delete what's there, paste in all of `apps-script/Code.gs`, and save.
-3. Click **Deploy → New deployment**. Click the gear and choose **Web app**.
+One script sends each check to the sheet for the teacher the student picked. The person who sets it up owns all the sheets and shares each one with its teacher. The other teachers only open a link.
+
+**Set up (once):**
+
+1. Go to **script.google.com** and click **New project**. Name it "WE Timeline results."
+2. Delete what's in the editor, paste in all of `apps-script/Code.gs`, and save.
+3. Check `SCHOOL_YEAR` and `TEACHERS` at the top of the script.
+4. In the function menu at the top, choose **setup** and click **Run**. Approve the permissions.
+5. Open the **Execution log**. It lists a link to each new sheet: "WE Timeline: STR (2026-27)", and so on. The sheets are also in your Google Drive.
+6. Share each sheet with its teacher (**Share**, add their email, Viewer or Editor).
+7. Click **Deploy → New deployment**, click the gear, and choose **Web app**.
    - Execute as: **Me**
    - Who has access: **Anyone**
-4. Click **Deploy**, approve the permissions, and copy the **Web app URL**.
-5. In `app.js`, paste the URL into `SHEET_URL: ""` at the top, then commit the change.
+8. Click **Deploy** and copy the **Web app URL**.
+9. Paste the URL into `SHEET_URL: ""` at the top of `app.js` and commit the change.
 
-Each submitted check adds a row to the **Results** tab: name, hour, level, score, time, and which eras were missed.
+Each submitted check adds a row to that teacher's sheet: name, hour, level, score, time, and which eras were missed. If a result ever arrives without a known teacher, it goes to a sheet named "WE Timeline: Unsorted."
 
 If your district blocks "Anyone" access for Apps Script, students will see "Your result couldn't be sent. Show this screen to your teacher." Ask your tech department to allow it, or collect scores from screens for now.
 
 If you edit `Code.gs` later, use **Deploy → Manage deployments → Edit → New version** so the URL stays the same.
+
+## Teachers and hours
+
+On a check, students choose their teacher first. The Hour menu then lists only that teacher's hours. The list is `TEACHERS` at the top of `app.js`:
+
+```js
+TEACHERS: [
+  { code: "STR", hours: ["1st Hour"] },
+  { code: "LAF", hours: ["1st Hour", "7th Hour"] },
+  { code: "LYS", hours: ["1st Hour", "2nd Hour", "3rd Hour"] }
+]
+```
+
+## Starting a new school year
+
+1. In `app.js`, update `TEACHERS` (codes and hours) and commit.
+2. In the script, update `SCHOOL_YEAR` and `TEACHERS` (codes only), save, and run **setup** again. It makes a fresh set of sheets; last year's stay in your Drive.
+3. Share the new sheets. The web app URL doesn't change, so `SHEET_URL` stays the same. After editing the script, use **Manage deployments → Edit → New version**.
 
 ## Hints
 
