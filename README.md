@@ -115,6 +115,26 @@ From Level 2 on, each practice session starts with a warm-up on three random era
 - Two missed warm-ups in a row close the level until the student does one clean run of the earlier level the misses came from. The ladder shows which level, with a button to practice it.
 - "Play again" inside a level doesn't repeat the warm-up. Coming back to the level after reloading the page does.
 
+## Rivers
+
+Rivers the otter is the app's guide. The poses are in `img/rivers/`, one file per pose. Rivers appears in one place per screen and stays out of the history itself: in the masthead, on the ladder, in the bottom bar, or in a panel.
+
+| Where | Pose |
+|---|---|
+| Home, before a student has any clean runs | `wave`, with a hello |
+| Home, after that | `hike`, standing on the highest open level ("You are here") |
+| Practice, while working | `think` |
+| Practice, after a hint | `write` |
+| Practice, after a check with misses | `rest` |
+| Practice, all placed but not clean | `books` (or `write` if hints were used) |
+| **Clean run** | `jump`, large, with confetti in the era colors |
+| **Clean run that opens a level** | `cheer`, large, with more confetti |
+| Warm-up passed / missed / closed for a refresh | `stride` / `rest` / `read` |
+| Check intro / check result / result not sent | `magnify` / `laptop` / `think` |
+| Teacher tools | `books` |
+
+Jump and cheer appear only on clean runs, so students learn what they mean. Confetti is skipped when a computer is set to reduce motion. Spare poses for later levels: `globe`, `idea`, `gasp`, `point`, `walk`, `bye`.
+
 ## Things to know about check mode
 
 - Students can reload the page and take a check again. Every attempt lands in the sheet with a timestamp, so you can decide which attempt counts (for example, the first one).

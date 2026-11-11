@@ -247,3 +247,44 @@ mark { background: var(--hl); color: var(--on-hl); padding: 0 2px; }
 .wu-opt.right { border-color: var(--good); box-shadow: inset 0 0 0 2px var(--good); }
 .wu-opt.wrong { border-color: var(--bad); box-shadow: inset 0 0 0 2px var(--bad); text-decoration: line-through; }
 .wu-opt.dim { opacity: 0.45; }
+
+/* ---- Rivers, the guide ---- */
+/* Rivers lives in the frame of the app: the masthead, the ladder, the bottom bar, and panels. */
+.rivers { display: block; height: auto; pointer-events: none; user-select: none; -webkit-user-select: none; filter: drop-shadow(0 3px 4px rgb(0 0 0 / 0.18)); }
+
+/* home: hello for a new student */
+.mast.greet { grid-template-columns: auto minmax(0, 1fr) auto; }
+.hello { display: flex; align-items: flex-end; gap: 6px; }
+.hello .rivers { width: 150px; }
+.bubble { position: relative; max-width: 25ch; border: 2px solid var(--rule); background: var(--card); padding: 10px 14px; font-size: 16px; line-height: 1.35; margin-bottom: 92px; }
+.bubble::after { content: ""; position: absolute; right: -9px; bottom: 18px; width: 14px; height: 14px; background: var(--card); border-right: 2px solid var(--rule); border-bottom: 2px solid var(--rule); transform: rotate(-45deg); }
+@media (max-width: 860px) { .mast.greet { grid-template-columns: auto minmax(0, 1fr); } .hello { grid-column: 1 / -1; justify-content: flex-end; } }
+
+/* home: "you are here" on the ladder */
+.rung { position: relative; }
+.here { position: absolute; top: 10px; right: 10px; display: flex; flex-direction: column; align-items: center; }
+.here .rivers { width: 84px; }
+.here span { font-family: var(--display); font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; background: var(--ink); color: var(--paper); padding: 1px 8px; margin-top: -4px; position: relative; }
+.rung.is-here .num, .rung.is-here h3, .rung.is-here .task { padding-right: 96px; }
+
+/* practice: the bottom bar */
+.actionbar .msg { flex: 1 1 260px; }
+/* While a round is in play, Rivers stays inside the bar so the cards above are never covered. */
+.actionbar > .rivers { height: 64px; width: auto; margin: -8px -4px -12px -6px; align-self: flex-end; }
+.actionbar.celebrate { border-width: 3px; background: color-mix(in srgb, var(--e6) 55%, var(--paper)); }
+.actionbar.celebrate.unlock { background: color-mix(in srgb, var(--e3) 50%, var(--paper)); }
+.actionbar > .rivers.big { height: 176px; margin-top: -132px; transform-origin: 50% 100%; animation: rivers-pop 0.55s cubic-bezier(0.2, 1.5, 0.4, 1) both, rivers-hop 0.9s ease-in-out 0.6s 2; }
+@keyframes rivers-pop { from { transform: translateY(50px) scale(0.35); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes rivers-hop { 0%, 100% { transform: none; } 40% { transform: translateY(-14px) rotate(-3deg); } 70% { transform: translateY(0) scale(1.03, 0.97); } }
+
+/* clean run confetti, in the nine era colors */
+.confetti { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 60; }
+.confetti i { position: absolute; top: -24px; width: 13px; height: 13px; border: 2px solid var(--rule); animation-name: confetti-fall; animation-timing-function: cubic-bezier(0.3, 0.1, 0.6, 1); animation-fill-mode: forwards; }
+@keyframes confetti-fall { to { transform: translate(var(--x), calc(100vh + 40px)) rotate(var(--r)); } }
+
+/* panels: warm-up results, checks, teacher tools */
+.panel.has-rivers { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 24px; align-items: end; }
+.panel.has-rivers > .rivers { width: 140px; margin-bottom: -10px; }
+@media (max-width: 560px) { .panel.has-rivers { grid-template-columns: 1fr; } .panel.has-rivers > .rivers { width: 100px; justify-self: end; } }
+
+@media (prefers-reduced-motion: reduce) { .actionbar > .rivers.big { animation: none; } }

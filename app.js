@@ -76,6 +76,27 @@ function shuffle(a) { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { co
 const years = e => `${e.start}–${e.end}`;
 const pips = (have, need) => `<span class="pips" aria-hidden="true">${Array.from({ length: need }, (_, i) => `<i class="${i < have ? "on" : ""}"></i>`).join("")}</span>`;
 
+// ===== RIVERS (the guide) =====
+// One Rivers on screen at a time, always in the frame of the app (the ladder, the bottom bar, panels),
+// never beside the history itself. Poses live in img/rivers/. Jump and cheer are saved for clean runs.
+const rivers = (pose, cls = "") => `<img class="rivers ${cls}" src="img/rivers/${pose}.webp" alt="" aria-hidden="true" draggable="false">`;
+["jump", "cheer", "think", "rest", "write", "books"].forEach(p => (new Image().src = `img/rivers/${p}.webp`));
+// A burst of squares in the nine era colors. Bigger when a clean run opens a level.
+function confetti(big) {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const box = document.createElement("div");
+  box.className = "confetti"; box.setAttribute("aria-hidden", "true");
+  for (let i = 0; i < (big ? 90 : 45); i++) {
+    const p = document.createElement("i");
+    p.style.cssText = `left:${Math.random() * 100}%;background:var(--e${1 + Math.floor(Math.random() * 9)});` +
+      `animation-delay:${(Math.random() * 0.6).toFixed(2)}s;animation-duration:${(1.8 + Math.random() * 1.4).toFixed(2)}s;` +
+      `--x:${Math.round(Math.random() * 160 - 80)}px;--r:${Math.round(Math.random() * 720 - 360)}deg`;
+    box.appendChild(p);
+  }
+  document.body.appendChild(box);
+  setTimeout(() => box.remove(), 4000);
+}
+
 function stripHTML() {
   const segs = ERAS.map(e => `<div class="strip-seg" style="flex:${e.end - e.start} 1 0;background:var(--e${e.n})" title="Era ${e.n}: ${years(e)}">${e.n}</div>`).join("");
   const marks = [FIRST, ...ERAS.map(e => e.end)];
@@ -103,6 +124,9 @@ function go(hash) { if (location.hash === "#" + hash) route(); else location.has
 // ===== HOME =====
 function renderHome() {
   G = null;
+  // A brand-new student gets a hello in the masthead. After that, Rivers stands on the highest open level.
+  const fresh = !progress.unlockAll && !Object.values(progress.clean).some(v => v > 0);
+  const here = fresh ? null : LEVELS.slice().reverse().find(l => l.built && isOpen(l.n));
   const rungs = LEVELS.map(l => {
     const open = l.built && isOpen(l.n);
     let status, action = "";
@@ -113,10 +137,13 @@ function renderHome() {
     else if (!open) status = `Opens after ${CONFIG.CLEAN_RUNS_TO_UNLOCK} clean runs of Level ${l.n - 1}. Now: ${cleanRuns(l.n - 1)} ${pips(cleanRuns(l.n - 1), CONFIG.CLEAN_RUNS_TO_UNLOCK)}`;
     else status = `Clean runs: ${cleanRuns(l.n)} ${pips(Math.min(cleanRuns(l.n), CONFIG.CLEAN_RUNS_TO_UNLOCK), CONFIG.CLEAN_RUNS_TO_UNLOCK)}`;
     if (open) action = `<div><a class="btn" href="#practice-${l.n}">Practice</a></div>`;
-    return `<article class="rung ${open ? "" : "locked"}"><div class="num">${l.n}</div><h3>${l.title}</h3><p class="task">${l.task}</p><p class="status">${status}</p>${action}</article>`;
+    const isHere = here && here.n === l.n;
+    const marker = isHere ? `<div class="here">${rivers("hike")}<span>You are here</span></div>` : "";
+    return `<article class="rung ${open ? "" : "locked"} ${isHere ? "is-here" : ""}">${marker}<div class="num">${l.n}</div><h3>${l.title}</h3><p class="task">${l.task}</p><p class="status">${status}</p>${action}</article>`;
   }).join("");
+  const hello = fresh ? `<div class="hello"><p class="bubble">Hi, I'm <b>Rivers</b>. I'll be climbing this ladder with you all year. Start with Level 1.</p>${rivers("wave")}</div>` : "";
   app.innerHTML = `
-    <header class="mast"><h1>WE</h1><p>A timeline of American history and where you are in it</p></header>
+    <header class="mast ${fresh ? "greet" : ""}"><h1>WE</h1><p>A timeline of American history and where you are in it</p>${hello}</header>
     ${stripHTML()}
     <p class="strip-note">All 540 years, drawn to scale. Each colored block is one era, numbered in order. By the end of the year you'll be able to rebuild this whole strip: names, descriptions, years, and anchor events.</p>
     <div class="ladder-head"><h2>The ladder</h2><p>A <b>clean run</b> means every answer is right on your first check, with no hints. ${CONFIG.CLEAN_RUNS_TO_UNLOCK} clean runs open the next level. From Level 2 on, each practice session starts with a short warm-up on the earlier levels.</p></div>
@@ -274,7 +301,9 @@ function renderGame() {
     const btn = isCheck
       ? `<button class="btn" id="submit-btn" ${ready ? "" : "disabled"}>Submit</button>`
       : `<button class="btn" id="check-btn" ${ready ? "" : "disabled"}>Check my answers</button>`;
-    bar = `<div class="actionbar"><p class="msg" aria-live="polite">${msg}</p>${btn}</div>`;
+    // Practice only: Rivers thinks along, takes notes once a hint is used, and rests a beat after a miss.
+    const guide = isCheck ? "" : rivers(G.msg ? "rest" : G.hinted ? "write" : "think");
+    bar = `<div class="actionbar">${guide}<p class="msg" aria-live="polite">${msg}</p>${btn}</div>`;
   }
 
   app.innerHTML = `
@@ -331,12 +360,16 @@ function practiceCheck() {
       progress.clean[G.level] = cleanRuns(G.level) + 1;
       Object.keys(progress.refresh).forEach(n => { if (progress.refresh[n].level === G.level) { delete progress.refresh[n]; progress.misses[n] = 0; G.reopened = +n; } });
       saveProgress();
+      // Did this clean run just open the next level? That's the biggest moment in the app.
+      const nx = LEVELS[G.level];
+      G.opened = !!(nx && nx.built && !capped(nx.n) && cleanRuns(G.level) === CONFIG.CLEAN_RUNS_TO_UNLOCK);
     }
   } else {
     G.msg = `<b>${right} of ${total} right.</b> ${wrong === 1 ? "The other one went" : `The other ${wrong} went`} back to the pile.`;
   }
   G.selected = null;
   renderGame();
+  if (G.clean) confetti(G.opened || G.reopened);
 }
 function finishBar() {
   const need = CONFIG.CLEAN_RUNS_TO_UNLOCK, have = cleanRuns(G.level), next = LEVELS[G.level];
@@ -346,9 +379,13 @@ function finishBar() {
   else if (G.hinted) line1 = `<b>All ${all} in place.</b> You used hints, so this was a practice run. Try a round without hints for a clean run.`;
   else line1 = `<b>All ${all} in place</b> after ${G.checks} checks. A clean run needs them all right on the first check.`;
   let line2 = `Clean runs on this level: ${have} ${pips(Math.min(have, need), need)}`;
-  if (G.reopened) line2 += ` Level ${G.reopened} is open again.`;
+  if (G.reopened) line2 += ` <b>Level ${G.reopened} is open again.</b>`;
+  else if (G.opened) line2 += ` <b>You opened Level ${next.n}!</b>`;
   else if (next && next.built && have >= need && !capped(next.n)) line2 += ` Level ${next.n} is open.`;
-  return `<div class="actionbar"><p class="msg" aria-live="polite">${line1}<br>${line2}</p>
+  // Jump and cheer only ever appear here, so students learn what they mean.
+  const unlock = G.clean && (G.opened || G.reopened);
+  const guide = G.clean ? rivers(unlock ? "cheer" : "jump", "big") : rivers(G.hinted ? "write" : "books");
+  return `<div class="actionbar ${G.clean ? "celebrate" : ""} ${unlock ? "unlock" : ""}">${guide}<p class="msg" aria-live="polite">${line1}<br>${line2}</p>
     <div class="btn-row"><button class="btn" data-go="again">Play again</button><button class="btn ghost" data-go="home">All levels</button></div></div>`;
 }
 
@@ -358,7 +395,7 @@ function checkIntro(level) {
   const L = LEVELS[level - 1];
   app.innerHTML = `
     <nav class="topbar"><div class="where"><h2>Level ${L.n} · ${L.title}</h2><span class="mode check">Check</span></div></nav>
-    <section class="panel">
+    <section class="panel has-rivers"><div>
       <h2>Before you start</h2>
       <p>${esc(L.task)} This is the same task you practiced, with two differences: you get <b>one try</b>, and you won't see which answers are right until you submit.</p>
       <form class="form" id="who-form" novalidate>
@@ -368,7 +405,7 @@ function checkIntro(level) {
         <p class="err" id="who-err" aria-live="polite"></p>
         <div><button class="btn" type="submit">Start the check</button></div>
       </form>
-    </section>`;
+    </div>${rivers("magnify")}</section>`;
   const tSel = document.getElementById("student-teacher"), hSel = document.getElementById("student-hour");
   tSel.addEventListener("change", () => {
     const t = CONFIG.TEACHERS.find(x => x.code === tSel.value);
@@ -420,12 +457,12 @@ function resultPanel() {
     sent: `<p class="sendnote ok">Your result was submitted to your teacher.</p>`,
     failed: `<p class="sendnote bad">Your result couldn't be sent. Show this screen to your teacher.</p>`
   }[r.send];
-  return `<section class="panel">
+  return `<section class="panel has-rivers"><div>
     <div class="result-grid"><div class="score">${r.score} / ${r.total}</div>
       <dl><dt>Name</dt><dd>${esc(G.who.name)}</dd><dt>Teacher</dt><dd>${esc(G.who.teacher)}</dd><dt>Hour</dt><dd>${esc(G.who.hour)}</dd><dt>Level</dt><dd>${G.level} · ${LEVELS[G.level - 1].title}</dd><dt>Time</dt><dd>${m}:${String(s).padStart(2, "0")}</dd></dl></div>
     ${note}
     <p class="small" style="margin-top:12px">Each row below is marked. The ones you missed show the right answer.</p>
-  </section>`;
+  </div>${rivers(r.send === "failed" ? "think" : "laptop")}</section>`;
 }
 
 // ===== WARM-UP: before each practice session of Level 2 and up =====
@@ -486,15 +523,18 @@ function renderWarmup() {
 function renderWarmupResult() {
   const n = W.level, missed = W.items.flatMap(it => it.steps.filter(s => s.picked !== s.answer));
   warmedUp[n] = true;
-  let body, buttons;
+  let body, buttons, pose;
   if (!missed.length) {
+    pose = "stride";
     progress.misses[n] = 0; saveProgress();
     body = `<h2>Warm-up passed</h2><p>You still have the earlier levels down. On to Level ${n}.</p>`;
     buttons = `<button class="btn" id="wu-go">Start Level ${n}</button>`;
   } else {
     const from = Math.min(...missed.map(s => s.from));
     progress.misses[n] = (progress.misses[n] || 0) + 1;
+    pose = "rest";
     if (progress.misses[n] >= 2) {
+      pose = "read";
       progress.refresh[n] = { level: from, base: cleanRuns(from) };
       progress.misses[n] = 0;
       warmedUp[n] = false;
@@ -509,7 +549,7 @@ function renderWarmupResult() {
   }
   app.innerHTML = `
     <nav class="topbar"><div class="where"><h2>Level ${n} · Warm-up</h2></div><a class="back" href="#">← All levels</a></nav>
-    <section class="panel">${body}<div class="btn-row" style="margin-top:16px">${buttons}</div></section>`;
+    <section class="panel has-rivers"><div>${body}<div class="btn-row" style="margin-top:16px">${buttons}</div></div>${rivers(pose)}</section>`;
   const go2 = document.getElementById("wu-go");
   if (go2) go2.onclick = () => startGame(n, "practice");
   const again = document.getElementById("wu-again");
@@ -533,10 +573,10 @@ function renderTeacher() {
     <button class="btn ghost" data-copy="${l.n}">Copy</button></div>`).join("");
   app.innerHTML = `
     <nav class="topbar"><div class="where"><h2>Teacher tools</h2></div><a class="back" href="#">← All levels</a></nav>
-    <section class="panel"><h2>Check links</h2>
+    <section class="panel has-rivers"><div><h2>Check links</h2>
       <p>Give students one of these links when it's time for a check. It skips the ladder and opens the check directly, even if the level is still locked for them.</p>
       <div class="teacher-list">${links}</div>
-      <p class="small" style="margin-top:10px">On your GitHub site, a check link is your site's address with #check-1 or #check-2 on the end.</p></section>
+      <p class="small" style="margin-top:10px">On your GitHub site, a check link is your site's address with #check-1 or #check-2 on the end.</p></div>${rivers("books")}</section>
     <section class="panel"><h2>Results sheet</h2>
       <p>${CONFIG.SHEET_URL ? `Connected. Each submitted check goes to its teacher's sheet (${CONFIG.TEACHERS.map(t => esc(t.code)).join(", ")}).` : "Not connected yet. Students will see their score on screen. The README explains how to connect a Google Sheet in about five minutes."}</p></section>
     <section class="panel"><h2>This computer</h2>
